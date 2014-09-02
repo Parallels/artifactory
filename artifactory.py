@@ -23,7 +23,11 @@ There are PureArtifactoryPath and ArtifactoryPath that can be used
 to manipulate artifactory paths. See pathlib docs for details how
 pure paths can be used.
 """
-
+import os
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 import sys
 import errno
 import pathlib
@@ -55,6 +59,29 @@ def sha1sum(filename):
         for chunk in iter(lambda: f.read(128 * sha1.block_size), b''):
             sha1.update(chunk)
     return sha1.hexdigest()
+
+
+def get_global_auth(pathobj):
+    """
+    Read ~/.artifactory_python.cfg and look for credentials associated with pathobj.drive
+    Value is overridden if auth param is provided during init of ArtifactoryPath
+
+    Format of .artifactory_python.cfg should be:
+    [https://another-artifactory-instance.com/artifactory]
+    username = foo
+    password = @dmin
+    """
+    auth_config = os.path.expanduser('~/.artifactory_python.cfg')
+    if not os.path.isfile(auth_config):
+        return None
+    p = configparser.ConfigParser()
+    p.read(auth_config)
+    if not pathobj.drive in p.sections():
+        return None
+    if not p.has_option(pathobj.drive, 'username') or not p.has_option(pathobj.drive, 'password'):
+        return None
+    auth = (p.get(pathobj.drive, 'username'), p.get(pathobj.drive, 'password'))
+    return auth
 
 
 class HTTPResponseWrapper(object):
@@ -617,7 +644,8 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
         obj.auth = None
         if 'auth' in kwargs:
             obj.auth = kwargs['auth']
-
+        else:
+            obj.auth = get_global_auth(obj)
         return obj
 
     def _init(self, *args, **kwargs):
