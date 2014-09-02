@@ -24,7 +24,10 @@ to manipulate artifactory paths. See pathlib docs for details how
 pure paths can be used.
 """
 import os
-from ConfigParser import ConfigParser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 import sys
 import errno
 import pathlib
@@ -71,7 +74,7 @@ def get_global_auth(pathobj):
     auth_config = os.path.expanduser('~/.artifactory_python.cfg')
     if not os.path.isfile(auth_config):
         return None
-    p = ConfigParser()
+    p = configparser.ConfigParser()
     p.read(auth_config)
     if not pathobj.drive in p.sections():
         return None
