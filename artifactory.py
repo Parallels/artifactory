@@ -45,7 +45,7 @@ except ImportError:
 
 
 default_config_path = '~/.artifactory_python.cfg'
-global_config = None
+global_config = {}
 
 
 def read_config(config_path=default_config_path):
@@ -109,6 +109,7 @@ def read_global_config(config_path=default_config_path):
             global_config = read_config(config_path)
         except OSError:
             pass
+    return global_config
 
 
 def without_http_prefix(url):
@@ -287,30 +288,40 @@ class _ArtifactoryFlavour(pathlib._Flavour):
         """
         Splits path string into drive, root and relative path
 
-        Uses '/artifactory/' as a splitting point in URI. Everything
-        before it, including '/artifactory/' itself is treated as drive.
-        The next folder is treated as root, and everything else is taken
-        for relative path.
+        The 'drive' is usually a base URI, 'root' is repository name,
+        and 'relative path' is everything else.
+
+        First, the implementation tries to match base URI from
+        the global configuration entries. If that fails, it falls
+        back to using first occurence of '/artifactory/' as a splitting
+        point.
         """
         drv = ''
         root = ''
 
-        mark = sep+'artifactory'+sep
-        parts = part.split(mark)
+        for candidate in read_global_config():
+            candidate = without_http_prefix(candidate.rstrip(sep))
+            if part.startswith(candidate):
+                drv = candidate
+                rest = part[len(candidate):] or sep
 
-        if len(parts) >= 2:
-            drv = parts[0] + mark.rstrip('/')
-            rest = '/' + mark.join(parts[1:])
-        elif part.endswith(sep+'artifactory'):
-            drv = part
-            rest = ''
-        else:
-            rest = part
+        if not drv:
+            mark = sep+'artifactory'+sep
+            parts = part.split(mark)
+
+            if len(parts) >= 2:
+                drv = parts[0] + mark.rstrip(sep)
+                rest = sep + sep.join(parts[1:])
+            elif part.endswith(sep+'artifactory'):
+                drv = part
+                rest = ''
+            else:
+                rest = part
 
         if not rest:
             return drv, '', ''
 
-        if rest == '/':
+        if rest == sep:
             return drv, '', ''
 
         if rest.startswith(sep):
