@@ -67,6 +67,8 @@ class ArtifactoryFlavorTest(unittest.TestCase):
     def test_splitroot(self):
         check = self._check_splitroot
 
+        artifactory.global_config = {}
+
         check(".com",
               ('', '', '.com'))
         check("example1.com",
@@ -85,6 +87,31 @@ class ArtifactoryFlavorTest(unittest.TestCase):
               ('http://artifactory.local/artifactory', '/foo/', 'bar'))
         check("https://artifactory.a.b.c.d/artifactory/foo/bar",
               ('https://artifactory.a.b.c.d/artifactory', '/foo/', 'bar'))
+
+    def test_splitroot_with_config(self):
+        check = self._check_splitroot
+
+        artifactory.global_config = {
+            'http://example1.com/myartifactory/': {'username': 'admin',
+                                                   'password': 'r@ndom'},
+            'http://example3.com/myartifactory/': {'username': 'admin',
+                                                   'password': 'r@ndom'}}
+
+        check(".com",
+              ('', '', '.com'))
+        check("example1.com",
+              ('', '', 'example1.com'))
+        check("example1.com/myartifactory",
+              ('example1.com/myartifactory', '', ''))
+        check("example1.com/myartifactory/",
+              ('example1.com/myartifactory', '', ''))
+        check("example1.com/myartifactory/foo",
+              ('example1.com/myartifactory', '/foo/', ''))
+        check("example2.com/myartifactory/foo",
+              ('', '', 'example2.com/myartifactory/foo'))
+        check("example3.com/myartifactory/foo/bar",
+              ('example3.com/myartifactory', '/foo/', 'bar'))
+
 
     def test_parse_parts(self):
         check = self._check_parse_parts
