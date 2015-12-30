@@ -108,6 +108,32 @@ class ArtifactoryFlavorTest(unittest.TestCase):
               ('http://example.com/artifactory', '/foo/',
                ['http://example.com/artifactory/foo/', 'bar', 'artifactory']))
 
+    def test_changed_root(self):
+        check = self._check_parse_parts
+
+        old_split_point = self.flavour.drive_split_point
+        self.flavour.drive_split_point = 'repository'
+
+        check(['.txt'],
+              ('', '', ['.txt']))
+
+        check(['http://b/repository/c/d.xml'],
+               ('http://b/repository', '/c/',
+                ['http://b/repository/c/', 'd.xml']))
+
+        check(['http://example.com/repository/foo'],
+              ('http://example.com/repository', '/foo/',
+               ['http://example.com/repository/foo/']))
+
+        check(['http://example.com/repository/foo/bar'],
+              ('http://example.com/repository', '/foo/',
+               ['http://example.com/repository/foo/', 'bar']))
+
+        check(['http://example.com/repository/foo/bar/artifactory'],
+              ('http://example.com/repository', '/foo/',
+               ['http://example.com/repository/foo/', 'bar', 'artifactory']))
+
+        self.flavour.drive_split_point = old_split_point
 
 class PureArtifactoryPathTest(unittest.TestCase):
     cls = artifactory.PureArtifactoryPath

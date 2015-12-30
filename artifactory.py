@@ -279,6 +279,8 @@ class _ArtifactoryFlavour(pathlib._Flavour):
 
     is_supported = (True)
 
+    drive_split_point = 'artifactory'
+
     def parse_parts(self, parts):
         drv, root, parsed = super(_ArtifactoryFlavour, self).parse_parts(parts)
         return drv, root, parsed
@@ -295,13 +297,13 @@ class _ArtifactoryFlavour(pathlib._Flavour):
         drv = ''
         root = ''
 
-        mark = sep+'artifactory'+sep
+        mark = sep + self.drive_split_point + sep
         parts = part.split(mark)
 
         if len(parts) >= 2:
             drv = parts[0] + mark.rstrip('/')
             rest = '/' + mark.join(parts[1:])
-        elif part.endswith(sep+'artifactory'):
+        elif part.endswith(sep + self.drive_split_point):
             drv = part
             rest = ''
         else:
