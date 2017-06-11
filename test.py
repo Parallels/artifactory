@@ -120,19 +120,19 @@ class ArtifactoryFlavorTest(unittest.TestCase):
 
         check(['http://b/artifactory/c/d.xml'],
               ('http://b/artifactory', '/c/',
-               ['http://b/artifactory/c/', 'd.xml']))
+              ['http://b/artifactory/c/', 'd.xml']))
 
         check(['http://example.com/artifactory/foo'],
               ('http://example.com/artifactory', '/foo/',
-               ['http://example.com/artifactory/foo/']))
+              ['http://example.com/artifactory/foo/']))
 
         check(['http://example.com/artifactory/foo/bar'],
               ('http://example.com/artifactory', '/foo/',
-               ['http://example.com/artifactory/foo/', 'bar']))
+              ['http://example.com/artifactory/foo/', 'bar']))
 
         check(['http://example.com/artifactory/foo/bar/artifactory'],
               ('http://example.com/artifactory', '/foo/',
-               ['http://example.com/artifactory/foo/', 'bar', 'artifactory']))
+              ['http://example.com/artifactory/foo/', 'bar', 'artifactory']))
 
 
 class PureArtifactoryPathTest(unittest.TestCase):
