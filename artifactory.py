@@ -448,12 +448,14 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         res = requests.put(url, headers=headers, auth=auth, data=stream, verify=verify, cert=cert)
         return res.text, res.status_code
 
-    def rest_get_stream(self, url, auth=None, verify=True, cert=None):
+    def rest_get_stream(self, url, auth=None, verify=True, cert=None, headers=None):
         """
         Perform a chunked GET request to url with optional authentication
         This is specifically to download files.
         """
-        res = requests.get(url, auth=auth, stream=True, verify=verify, cert=cert)
+        if not headers:
+            headers = {}
+        res = requests.get(url, headers=headers, auth=auth, stream=True, verify=verify, cert=cert)
         return res.raw, res.status_code
 
     def get_stat_json(self, pathobj):
@@ -646,14 +648,16 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         else:
             return 'nobody'
 
-    def open(self, pathobj):
+    def open(self, pathobj, headers=None):
         """
         Opens the remote file and returns a file-like object HTTPResponse
         Given the nature of HTTP streaming, this object doesn't support
         seek()
         """
+        if not headers:
+            headers = {}
         url = str(pathobj)
-        raw, code = self.rest_get_stream(url, auth=pathobj.auth, verify=pathobj.verify,
+        raw, code = self.rest_get_stream(url, headers=headers, auth=pathobj.auth, verify=pathobj.verify,
                                          cert=pathobj.cert)
 
         if not code == 200:
@@ -993,18 +997,19 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
                 continue
             yield self._make_child_relpath(name)
 
-    def open(self, mode='r', buffering=-1, encoding=None,
-             errors=None, newline=None):
+    def open(self, mode='r', buffering=-1, encoding=None, errors=None, newline=None, headers=None):
         """
         Open the given Artifactory URI and return a file-like object
         HTTPResponse, as if it was a regular filesystem object.
         The only difference is that this object doesn't support seek()
         """
+        if not headers:
+            headers = {}
         if mode != 'r' or buffering != -1 or encoding or errors or newline:
             raise NotImplementedError('Only the default open() ' +
                                       'arguments are supported')
 
-        return self._accessor.open(self)
+        return self._accessor.open(self, headers=headers)
 
     def owner(self):
         """
