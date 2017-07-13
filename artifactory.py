@@ -409,12 +409,13 @@ class _ArtifactoryAccessor(pathlib._Accessor):
     """
     Implements operations with Artifactory REST API
     """
-    def rest_get(self, url, params=None, headers=None, auth=None, verify=True, cert=None):
+    def rest_get(self, url, params=None, headers=None, auth=None, verify=True, cert=None, encoding="utf-8"):
         """
         Perform a GET request to url with optional authentication
         """
         res = requests.get(url, params=params, headers=headers, auth=auth, verify=verify,
                            cert=cert)
+        res.encoding = encoding
         return res.text, res.status_code
 
     def rest_put(self, url, params=None, headers=None, auth=None, verify=True, cert=None):
@@ -632,6 +633,17 @@ class _ArtifactoryAccessor(pathlib._Accessor):
             return stat.modified_by
         else:
             return 'nobody'
+
+    def md5(self, pathobj):
+        """
+        Returns file md5 hash
+        """
+        stat = self.stat(pathobj)
+
+        if not stat.is_dir:
+            return stat.md5
+        else:
+            return 'n/a'
 
     def creator(self, pathobj):
         """
@@ -1021,6 +1033,12 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
         with pathlib, we return created_by instead, if available.
         """
         return self._accessor.creator(self)
+
+    def md5(self):
+        """
+        Returns file m5 hash.
+        """
+        return self._accessor.md5(self)
 
     def is_dir(self):
         """
