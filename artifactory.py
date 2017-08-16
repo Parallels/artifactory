@@ -34,6 +34,7 @@ import re
 import json
 import dateutil.parser
 import hashlib
+
 try:
     import requests.packages.urllib3 as urllib3
 except ImportError:
@@ -42,7 +43,6 @@ try:
     import configparser
 except ImportError:
     import ConfigParser as configparser
-
 
 default_config_path = '~/.artifactory_python.cfg'
 global_config = None
@@ -220,6 +220,7 @@ class HTTPResponseWrapper(object):
     since the stream is not rewindable, by the time it tries to send
     actual content, there is nothing left in the stream.
     """
+
     def __init__(self, obj):
         self.obj = obj
 
@@ -327,10 +328,10 @@ class _ArtifactoryFlavour(pathlib._Flavour):
 
         base = get_global_base_url(part)
         if base and without_http_prefix(part).startswith(without_http_prefix(base)):
-            mark = without_http_prefix(base).rstrip(sep)+sep
+            mark = without_http_prefix(base).rstrip(sep) + sep
             parts = part.split(mark)
         else:
-            mark = sep+'artifactory'+sep
+            mark = sep + 'artifactory' + sep
             parts = part.split(mark)
 
         if len(parts) >= 2:
@@ -409,6 +410,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
     """
     Implements operations with Artifactory REST API
     """
+
     def rest_get(self, url, params=None, headers=None, auth=None, verify=True, cert=None):
         """
         Perform a GET request to url with optional authentication
@@ -1256,6 +1258,47 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
                      possible to force recursive behavior.
         """
         return self._accessor.del_properties(self, properties, recursive)
+
+    def aql(self, *args):
+        """
+        Send AQL query to Artifactory
+        :param args:
+        :return:
+        """
+        aql_query_url = '{}/api/search/aql'.format(self.drive)
+        aql_query_text = self.create_aql_text(*args)
+        r = self.session.post(aql_query_url, data=aql_query_text)
+        r.raise_for_status()
+        content = r.json()
+        return content['results']
+
+    @staticmethod
+    def create_aql_text(*args):
+        """
+        Create AQL querty from string\list\dict arguments
+        """
+        aql_query_text = ""
+        for arg in args:
+            if isinstance(arg, dict):
+                arg = "({})".format(json.dumps(arg))
+            elif isinstance(arg, list):
+                arg = "({})".format(json.dumps(arg)).replace("[", "").replace("]", "")
+            aql_query_text += arg
+        return aql_query_text
+
+    def from_aql(self, result):
+        """
+        Convert raw AQL result to pathlib object
+        :param result: ONE raw result
+        :return:
+        """
+        result_type = result.get('type')
+        if result_type not in ('file', 'folder'):
+            raise RuntimeError("Path object with type '{}' doesn't support. File or folder only".format(result_type))
+
+        result_path = "{}/{repo}/{path}/{name}".format(self.drive, **result)
+        obj = ArtifactoryPath(result_path, auth=self.auth, verify=self.verify, cert=self.cert, session=self.session)
+        return obj
 
 
 def walk(pathobj, topdown=True):

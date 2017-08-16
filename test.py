@@ -120,19 +120,19 @@ class ArtifactoryFlavorTest(unittest.TestCase):
 
         check(['http://b/artifactory/c/d.xml'],
               ('http://b/artifactory', '/c/',
-              ['http://b/artifactory/c/', 'd.xml']))
+               ['http://b/artifactory/c/', 'd.xml']))
 
         check(['http://example.com/artifactory/foo'],
               ('http://example.com/artifactory', '/foo/',
-              ['http://example.com/artifactory/foo/']))
+               ['http://example.com/artifactory/foo/']))
 
         check(['http://example.com/artifactory/foo/bar'],
               ('http://example.com/artifactory', '/foo/',
-              ['http://example.com/artifactory/foo/', 'bar']))
+               ['http://example.com/artifactory/foo/', 'bar']))
 
         check(['http://example.com/artifactory/foo/bar/artifactory'],
               ('http://example.com/artifactory', '/foo/',
-              ['http://example.com/artifactory/foo/', 'bar', 'artifactory']))
+               ['http://example.com/artifactory/foo/', 'bar', 'artifactory']))
 
 
 class PureArtifactoryPathTest(unittest.TestCase):
@@ -359,6 +359,49 @@ class TestArtifactoryConfig(unittest.TestCase):
             c = artifactory.get_config_entry(cfg, 'https://bar.net/artifactory')
             self.assertEqual(c['username'], 'foo')
             self.assertEqual(c['password'], 'bar')
+
+
+class TestArtifactoryAql(unittest.TestCase):
+    def setUp(self):
+        self.aql = artifactory.ArtifactoryPath("http://b/artifactory")
+
+    def test_create_aql_text_simple(self):
+        args = ["items.find", {"repo": "myrepo"}]
+        aql_text = self.aql.create_aql_text(*args)
+        assert aql_text == 'items.find({"repo": "myrepo"})'
+
+    def test_create_aql_text_list(self):
+        args = ["items.find()", ".include", ["name", "repo"]]
+        aql_text = self.aql.create_aql_text(*args)
+        assert aql_text == 'items.find().include("name", "repo")'
+
+    def test_create_aql_text_list_in_dict(self):
+        args = ["items.find", {"$and": [
+            {
+                "repo": {"$eq": "repo"}
+            },
+            {
+                "$or": [
+                    {"path": {"$match": "*path1"}},
+                    {"path": {"$match": "*path2"}},
+                ]
+            },
+        ]
+        }]
+        aql_text = self.aql.create_aql_text(*args)
+        assert aql_text == 'items.find({"$and": [{"repo": {"$eq": "repo"}}, {"$or": [{"path": {"$match": "*path1"}}, {"path": {"$match": "*path2"}}]}]})'
+
+    def test_from_aql_file(self):
+        result = {
+            'repo': 'reponame',
+            'path': 'folder1/folder2',
+            'name': 'name.nupkg',
+            'type': 'file',
+        }
+        artifact = self.aql.from_aql(result)
+        assert artifact.drive == "http://b/artifactory"
+        assert artifact.name == "name.nupkg"
+        assert artifact.root == "/reponame/"
 
 
 if __name__ == '__main__':
