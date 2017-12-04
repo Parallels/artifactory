@@ -400,6 +400,7 @@ ArtifactoryFileStat = collections.namedtuple(
      'mime_type',
      'size',
      'sha1',
+     'sha256',
      'md5',
      'is_dir',
      'children'])
@@ -509,6 +510,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
             mime_type=jsn.get('mimeType', None),
             size=int(jsn.get('size', '0')),
             sha1=jsn.get('checksums', {'sha1': None})['sha1'],
+            sha256=jsn.get('checksums', {'sha256': None}).get('sha256', None),
             md5=jsn.get('checksums', {'md5': None})['md5'],
             is_dir=is_dir,
             children=children)
