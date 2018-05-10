@@ -470,7 +470,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         if code == 404 and "Unable to find item" in text:
             raise OSError(2, "No such file or directory: '%s'" % url)
         if code != 200:
-            raise RuntimeError(text)
+            raise RuntimeError("%d '%s'" % (code, text))
 
         return json.loads(text)
 
@@ -585,7 +585,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
                                    cert=pathobj.cert)
 
         if code not in [200, 202, 204]:
-            raise RuntimeError("Failed to delete directory: '%s'" % text)
+            raise RuntimeError("Failed to delete directory: %d '%s'" % (code, text))
 
     def unlink(self, pathobj):
         """
@@ -657,7 +657,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
                                          cert=pathobj.cert)
 
         if not code == 200:
-            raise RuntimeError("%d" % code)
+            raise RuntimeError("%d '%s'" % (code, text))
 
         return raw
 
@@ -689,7 +689,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
                                           cert=pathobj.cert)
 
         if code not in [200, 201]:
-            raise RuntimeError("%s" % text)
+            raise RuntimeError("%d '%s'" % (code, text))
 
     def copy(self, src, dst, suppress_layouts=False):
         """
@@ -709,7 +709,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
                                     cert=src.cert)
 
         if code not in [200, 201]:
-            raise RuntimeError("%s" % text)
+            raise RuntimeError("%d '%s'" % (code, text))
 
     def move(self, src, dst):
         """
@@ -728,7 +728,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
                                     cert=src.cert)
 
         if code not in [200, 201]:
-            raise RuntimeError("%s" % text)
+            raise RuntimeError("%d '%s'" % (code, text))
 
     def get_properties(self, pathobj):
         """
@@ -751,7 +751,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         if code == 404 and "No properties could be found" in text:
             return {}
         if code != 200:
-            raise RuntimeError(text)
+            raise RuntimeError("%d '%s'" % (code, text))
 
         return json.loads(text)['properties']
 
@@ -777,7 +777,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         if code == 404 and "Unable to find item" in text:
             raise OSError(2, "No such file or directory: '%s'" % url)
         if code != 204:
-            raise RuntimeError(text)
+            raise RuntimeError("%d '%s'" % (code, text))
 
     def del_properties(self, pathobj, props, recursive):
         """
@@ -804,7 +804,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         if code == 404 and "Unable to find item" in text:
             raise OSError(2, "No such file or directory: '%s'" % url)
         if code != 204:
-            raise RuntimeError(text)
+            raise RuntimeError("%d '%s'" % (code, text))
 
 
 _artifactory_accessor = _ArtifactoryAccessor()
