@@ -657,7 +657,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
                                          cert=pathobj.cert)
 
         if not code == 200:
-            raise RuntimeError("%d '%s'" % (code, text))
+            raise RuntimeError("Failed to open stream. Status code %d" % code)
 
         return raw
 
