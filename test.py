@@ -335,9 +335,16 @@ class TestArtifactoryConfig(unittest.TestCase):
               "username=foo\n" + \
               "password=bar\n"
 
-        with tempfile.NamedTemporaryFile(mode='w+') as tf:
-            tf.write(cfg)
-            tf.flush()
+        tf = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        try:
+            with tf:
+                tf.write(cfg)
+                tf.flush()
+        except Exception as e:
+            os.remove(tf.name)
+            raise e
+
+        try:
             cfg = artifactory.read_config(tf.name)
 
             c = artifactory.get_config_entry(cfg, 'foo.net/artifactory')
@@ -359,6 +366,8 @@ class TestArtifactoryConfig(unittest.TestCase):
             c = artifactory.get_config_entry(cfg, 'https://bar.net/artifactory')
             self.assertEqual(c['username'], 'foo')
             self.assertEqual(c['password'], 'bar')
+        finally:
+            os.remove(tf.name)
 
 
 if __name__ == '__main__':
