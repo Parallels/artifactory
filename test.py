@@ -277,11 +277,13 @@ class ArtifactoryAccessorTest(unittest.TestCase):
 
         f = io.StringIO()
 
-        a.deploy(p, f, parameters=params)
+        # https://cloud.google.com/endpoints/docs/restricting-api-access-with-api-keys-openapi
+        headers = {'x-api-key': 'key'}
+        a.deploy(p, f, parameters=params, headers=headers)
 
         url = "http://b/artifactory/c/d;baz=quux;foo=bar"
 
-        a.rest_put_stream.assert_called_with(url, f, headers={}, auth=None, verify=True, cert=None)
+        a.rest_put_stream.assert_called_with(url, f, headers=headers, auth=None, verify=True, cert=None)
 
 
 class ArtifactoryPathTest(unittest.TestCase):

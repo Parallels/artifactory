@@ -448,12 +448,14 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         res = requests.put(url, headers=headers, auth=auth, data=stream, verify=verify, cert=cert)
         return res.text, res.status_code
 
-    def rest_get_stream(self, url, auth=None, verify=True, cert=None):
+    def rest_get_stream(self, url, auth=None, verify=True, cert=None, headers=None):
         """
         Perform a chunked GET request to url with optional authentication
         This is specifically to download files.
         """
-        res = requests.get(url, auth=auth, stream=True, verify=verify, cert=cert)
+        if not headers:
+            headers = {}
+        res = requests.get(url, headers=headers, auth=auth, stream=True, verify=verify, cert=cert)
         return res.raw, res.status_code
 
     def get_stat_json(self, pathobj):
@@ -646,14 +648,16 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         else:
             return 'nobody'
 
-    def open(self, pathobj):
+    def open(self, pathobj, headers=None):
         """
         Opens the remote file and returns a file-like object HTTPResponse
         Given the nature of HTTP streaming, this object doesn't support
         seek()
         """
+        if not headers:
+            headers = {}
         url = str(pathobj)
-        raw, code = self.rest_get_stream(url, auth=pathobj.auth, verify=pathobj.verify,
+        raw, code = self.rest_get_stream(url, headers=headers, auth=pathobj.auth, verify=pathobj.verify,
                                          cert=pathobj.cert)
 
         if not code == 200:
@@ -661,11 +665,13 @@ class _ArtifactoryAccessor(pathlib._Accessor):
 
         return raw
 
-    def deploy(self, pathobj, fobj, md5=None, sha1=None, parameters=None):
+    def deploy(self, pathobj, fobj, md5=None, sha1=None, parameters=None, headers=None):
         """
         Uploads a given file-like object
         HTTP chunked encoding will be attempted
         """
+        if not headers:
+            headers = {}
         if isinstance(fobj, urllib3.response.HTTPResponse):
             fobj = HTTPResponseWrapper(fobj)
 
@@ -673,8 +679,6 @@ class _ArtifactoryAccessor(pathlib._Accessor):
 
         if parameters:
             url += ";%s" % encode_matrix_parameters(parameters)
-
-        headers = {}
 
         if md5:
             headers['X-Checksum-Md5'] = md5
@@ -993,18 +997,19 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
                 continue
             yield self._make_child_relpath(name)
 
-    def open(self, mode='r', buffering=-1, encoding=None,
-             errors=None, newline=None):
+    def open(self, mode='r', buffering=-1, encoding=None, errors=None, newline=None, headers=None):
         """
         Open the given Artifactory URI and return a file-like object
         HTTPResponse, as if it was a regular filesystem object.
         The only difference is that this object doesn't support seek()
         """
+        if not headers:
+            headers = {}
         if mode != 'r' or buffering != -1 or encoding or errors or newline:
             raise NotImplementedError('Only the default open() ' +
                                       'arguments are supported')
 
-        return self._accessor.open(self)
+        return self._accessor.open(self, headers=headers)
 
     def owner(self):
         """
@@ -1100,20 +1105,24 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
         """
         raise NotImplementedError()
 
-    def deploy(self, fobj, md5=None, sha1=None, parameters={}):
+    def deploy(self, fobj, md5=None, sha1=None, parameters=None, headers=None):
         """
         Upload the given file object to this path
         """
-        return self._accessor.deploy(self, fobj, md5, sha1, parameters)
+        if not parameters:
+            parameters = {}
+        return self._accessor.deploy(self, fobj, md5, sha1, parameters, headers)
 
-    def deploy_file(self,
-                    file_name,
-                    calc_md5=True,
-                    calc_sha1=True,
-                    parameters={}):
+    def deploy_file(self, file_name, calc_md5=True, calc_sha1=True, parameters=None, headers=None):
         """
         Upload the given file to this path
         """
+        md5 = None
+        sha1 = None
+        if not headers:
+            headers = {}
+        if not parameters:
+            parameters = {}
         if calc_md5:
             md5 = md5sum(file_name)
         if calc_sha1:
@@ -1125,14 +1134,9 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
             target = self / pathlib.Path(file_name).name
 
         with open(file_name, 'rb') as fobj:
-            target.deploy(fobj, md5, sha1, parameters)
+            target.deploy(fobj, md5, sha1, parameters, headers)
 
-    def deploy_deb(self,
-                   file_name,
-                   distribution,
-                   component,
-                   architecture,
-                   parameters={}):
+    def deploy_deb(self, file_name, distribution, component, architecture, parameters=None, headers=None):
         """
         Convenience method to deploy .deb packages
 
@@ -1143,6 +1147,8 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
         architecture -- package architecture (e.g. 'i386')
         parameters -- attach any additional metadata
         """
+        if not parameters:
+            parameters = {}
         params = {
             'deb.distribution': distribution,
             'deb.component': component,
@@ -1150,7 +1156,7 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
         }
         params.update(parameters)
 
-        self.deploy_file(file_name, parameters=params)
+        self.deploy_file(file_name, parameters=params, headers=headers)
 
     def copy(self, dst, suppress_layouts=False):
         """
