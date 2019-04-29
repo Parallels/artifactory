@@ -61,7 +61,7 @@ def read_config(config_path=default_config_path):
       [https://artifactory-instance.local/artifactory]
       username = foo
       password = @dmin
-      verify = false
+      verify = true/false or ~/path-to-ca-chain
       cert = ~/path-to-cert
 
     config-path - specifies where to read the config from
@@ -80,7 +80,7 @@ def read_config(config_path=default_config_path):
     for section in p.sections():
         username = p.get(section, 'username') if p.has_option(section, 'username') else None
         password = p.get(section, 'password') if p.has_option(section, 'password') else None
-        verify = p.getboolean(section, 'verify') if p.has_option(section, 'verify') else True
+        verify = p.get(section, 'verify') if p.has_option(section, 'verify') else True
         cert = p.get(section, 'cert') if p.has_option(section, 'cert') else None
 
         result[section] = {'username': username,
