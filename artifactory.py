@@ -80,7 +80,7 @@ def read_config(config_path=default_config_path):
     for section in p.sections():
         username = p.get(section, 'username') if p.has_option(section, 'username') else None
         password = p.get(section, 'password') if p.has_option(section, 'password') else None
-        if p.has_option(section, 'verify')
+        if p.has_option(section, 'verify'):
             try:
                 verify = p.getboolean(section, 'verify')
             except ValueError:
