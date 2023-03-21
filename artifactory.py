@@ -13,21 +13,21 @@
 
 """ artifactory: a python module for interfacing with JFrog Artifactory
 
-This module is intended to serve as a logical descendant of pathlib
+This module is intended to serve as a logical descendant of pathlib2
 (https://docs.python.org/3/library/pathlib.html), a Python 3 module
  for object-oriented path manipulations. As such, it implements
 everything as closely as possible to the origin with few exceptions,
 such as stat().
 
 There are PureArtifactoryPath and ArtifactoryPath that can be used
-to manipulate artifactory paths. See pathlib docs for details how
+to manipulate artifactory paths. See pathlib2 docs for details how
 pure paths can be used.
 """
 
 import os
 import sys
 import errno
-import pathlib
+import pathlib2
 import collections
 import requests
 import re
@@ -288,12 +288,12 @@ def encode_properties(parameters):
     return '|'.join(result)
 
 
-class _ArtifactoryFlavour(pathlib._Flavour):
+class _ArtifactoryFlavour(pathlib2._Flavour):
     """
     Implements Artifactory-specific pure path manipulations.
     I.e. what is 'drive', 'root' and 'path' and how to split full path into
     components.
-    See 'pathlib' documentation for explanation how those are used.
+    See 'pathlib2' documentation for explanation how those are used.
 
     drive: in context of artifactory, it's the base URI like
       http://mysite/artifactory
@@ -305,7 +305,7 @@ class _ArtifactoryFlavour(pathlib._Flavour):
     sep = '/'
     altsep = '/'
     has_drv = True
-    pathmod = pathlib.posixpath
+    pathmod = pathlib2.posixpath
 
     is_supported = (True)
 
@@ -405,7 +405,7 @@ ArtifactoryFileStat = collections.namedtuple(
      'children'])
 
 
-class _ArtifactoryAccessor(pathlib._Accessor):
+class _ArtifactoryAccessor(pathlib2._Accessor):
     """
     Implements operations with Artifactory REST API
     """
@@ -624,7 +624,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         """
         Returns file owner
         This makes little sense for Artifactory, but to be consistent
-        with pathlib, we return modified_by instead, if available
+        with pathlib2, we return modified_by instead, if available
         """
         stat = self.stat(pathobj)
 
@@ -637,7 +637,7 @@ class _ArtifactoryAccessor(pathlib._Accessor):
         """
         Returns file creator
         This makes little sense for Artifactory, but to be consistent
-        with pathlib, we return created_by instead, if available
+        with pathlib2, we return created_by instead, if available
         """
         stat = self.stat(pathobj)
 
@@ -824,7 +824,7 @@ class ArtifactoryOpensourceAccessor(_ArtifactoryAccessor):
     pass
 
 
-class PureArtifactoryPath(pathlib.PurePath):
+class PureArtifactoryPath(pathlib2.PurePath):
     """
     A class to work with Artifactory paths that doesn't connect
     to Artifactory server. I.e. it supports only basic path
@@ -839,30 +839,30 @@ class _FakePathTemplate(object):
         self._accessor = accessor
 
 
-class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
+class ArtifactoryPath(pathlib2.Path, PureArtifactoryPath):
     """
-    Implements fully-featured pathlib-like Artifactory interface
+    Implements fully-featured pathlib2-like Artifactory interface
     Unless explicitly mentioned, all methods copy the behaviour
-    of their pathlib counterparts.
+    of their pathlib2 counterparts.
 
-    Note that because of peculiarities of pathlib.Path, the methods
+    Note that because of peculiarities of pathlib2.Path, the methods
     that create new path objects, have to also manually set the 'auth'
-    field, since the copying strategy of pathlib.Path is not based
+    field, since the copying strategy of pathlib2.Path is not based
     on regular constructors, but rather on templates.
     """
-    # Pathlib limits what members can be present in 'Path' class,
+    # Pathlib2 limits what members can be present in 'Path' class,
     # so authentication information has to be added via __slots__
     __slots__ = ('auth', 'verify', 'cert')
 
     def __new__(cls, *args, **kwargs):
         """
-        pathlib.Path overrides __new__ in order to create objects
+        pathlib2.Path overrides __new__ in order to create objects
         of different classes based on platform. This magic prevents
         us from adding an 'auth' argument to the constructor.
-        So we have to first construct ArtifactoryPath by Pathlib and
+        So we have to first construct ArtifactoryPath by Pathlib2 and
         only then add auth information.
         """
-        obj = pathlib.Path.__new__(cls, *args, **kwargs)
+        obj = pathlib2.Path.__new__(cls, *args, **kwargs)
 
         cfg_entry = get_global_config_entry(obj.drive)
         obj.auth = kwargs.get('auth', None)
@@ -1010,7 +1010,7 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
         """
         Returns file owner.
         This makes little sense for Artifactory, but to be consistent
-        with pathlib, we return modified_by instead, if available.
+        with pathlib2, we return modified_by instead, if available.
         """
         return self._accessor.owner(self)
 
@@ -1018,7 +1018,7 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
         """
         Returns file creator.
         This makes little sense for Artifactory, but to be consistent
-        with pathlib, we return created_by instead, if available.
+        with pathlib2, we return created_by instead, if available.
         """
         return self._accessor.creator(self)
 
@@ -1122,7 +1122,7 @@ class ArtifactoryPath(pathlib.Path, PureArtifactoryPath):
         target = self
 
         if self.is_dir():
-            target = self / pathlib.Path(file_name).name
+            target = self / pathlib2.Path(file_name).name
 
         with open(file_name, 'rb') as fobj:
             target.deploy(fobj, md5, sha1, parameters)
